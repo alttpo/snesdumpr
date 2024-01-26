@@ -19,3 +19,14 @@
 
 # Go workspace file
 go.work
+
+# IDE folders
+.idea/
+
+# Temporary content
+node_modules/
+dist/
+
+# Generated code
+ts/sni/sni.client.ts
+ts/sni/sni.ts
