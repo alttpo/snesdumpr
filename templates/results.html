@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head.html"}}
+<body>
+{{template "capture.html"}}
+<script type="application/javascript">
+let capture = window.snesCapture;
+capture.reset();
+capture.withHexStrings(
+    {{ .HeaderJS }},
+    {{ .WramJS }},
+    {{ .SramJS }}
+);
+</script>
+</body>
+</html>

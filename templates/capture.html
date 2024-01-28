@@ -1,0 +1,11 @@
+<div>
+    <label for="lstDevices">Select Your SNES Device: </label><select id="lstDevices" hx-preserve="true"></select>
+    <button id="btnListDevices">...</button>
+</div>
+<div>
+    <button id="btnCapture" disabled="disabled">Capture SNES State</button>
+</div>
+<form hx-post="/save" hx-encoding="multipart/form-data">
+    <input type="file" name="section" id="section" hidden="hidden">
+    <button type="submit">Share This State</button>
+</form>

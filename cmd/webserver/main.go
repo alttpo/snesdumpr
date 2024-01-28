@@ -3,9 +3,11 @@ package main
 import (
 	"crypto/sha512"
 	"encoding/base64"
+	"encoding/hex"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"html/template"
 	"io"
 	"log"
 	"mime"
@@ -59,6 +61,10 @@ func ConnectRedis() {
 	rcl = redis.NewClient(opts)
 }
 
+// //go:embed templates/*
+// var f embed.FS
+var f = os.DirFS(".")
+
 // StartGin starts gin web server with setting router.
 func StartGin() {
 	var err error
@@ -77,9 +83,37 @@ func StartGin() {
 	router.SetTrustedProxies(nil)
 	router.Use(CORSMiddleware())
 
-	router.StaticFile("/", "public/index.html")
-	router.StaticFile("/index.html", "public/index.html")
+	templ := template.Must(template.New("").ParseFS(f, "templates/*.html"))
+	router.SetHTMLTemplate(templ)
+
 	router.Static("/js/", "dist")
+
+	router.GET("/", func(c *gin.Context) {
+		c.HTML(200, "index.html", gin.H{})
+	})
+
+	router.GET("/d/:hash", func(c *gin.Context) {
+		var err error
+		hs := c.Param("hash")
+
+		var val map[string]string
+		val, err = rcl.HGetAll(c, hs).Result()
+		if err != nil {
+			c.AbortWithError(500, err)
+			return
+		}
+
+		header, wram, sram :=
+			[]byte(val["header"]),
+			[]byte(val["wram"]),
+			[]byte(val["sram"])
+
+		c.HTML(200, "results.html", gin.H{
+			"HeaderJS": toJSHexString(header),
+			"WramJS":   toJSHexString(wram),
+			"SramJS":   toJSHexString(sram),
+		})
+	})
 
 	// TODO: CSRF to prevent anyone from posting to this endpoint
 	router.POST("/save", func(c *gin.Context) {
@@ -129,6 +163,13 @@ func StartGin() {
 			}
 		}
 
+		// minimum requirements:
+		if header == nil || wram == nil {
+			c.Abort()
+			c.String(400, `<div id=""></div>`)
+			return
+		}
+
 		// hash all the contents together:
 		h := sha512.New()
 		h.Write(header)
@@ -154,10 +195,8 @@ func StartGin() {
 			return
 		}
 
-		c.Header("Content-Type", "text/html")
-		c.Writer.WriteHeaderNow()
-		link := fmt.Sprintf(`<a href="/d/%s"></a>`, hs)
-		c.Writer.WriteString(link)
+		c.Header("HX-Location", fmt.Sprintf("/d/%s", hs))
+		c.Status(201)
 	})
 
 	port := os.Getenv("PORT")
@@ -167,4 +206,14 @@ func StartGin() {
 	if err := router.Run(":" + port); err != nil {
 		log.Panicf("error: %s", err)
 	}
+}
+
+func toJSHexString(b []byte) string {
+	if len(b) == 0 {
+		return "null"
+	}
+
+	s := make([]byte, hex.EncodedLen(len(b)))
+	hex.Encode(s, b)
+	return string(s)
 }
