@@ -63,7 +63,7 @@ func ConnectRedis() {
 
 // //go:embed templates/*
 // var f embed.FS
-var f = os.DirFS(".")
+var f = os.DirFS("templates")
 
 // StartGin starts gin web server with setting router.
 func StartGin() {
@@ -83,7 +83,7 @@ func StartGin() {
 	router.SetTrustedProxies(nil)
 	router.Use(CORSMiddleware())
 
-	templ := template.Must(template.New("").ParseFS(f, "templates/*.html"))
+	templ := template.Must(template.New("").ParseFS(f, "*.html"))
 	router.SetHTMLTemplate(templ)
 
 	router.Static("/js/", "dist")
