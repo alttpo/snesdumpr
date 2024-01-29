@@ -2,6 +2,8 @@
 
 import 'htmx.org';
 
+import {HexViewer} from './hex-viewer';
+
 import {GrpcWebFetchTransport} from "@protobuf-ts/grpcweb-transport";
 import {FinishedUnaryCall} from "@protobuf-ts/runtime-rpc/build/types/unary-call";
 import {DeviceMemoryClient, DevicesClient} from './sni/sni.client';
@@ -56,6 +58,7 @@ class Capture {
         this.sram = null;
     }
 
+    // noinspection JSUnusedGlobalSymbols
     withHexStrings(newHeaderHex: string, newWramHex: string, newSramHex: string | null) {
         this.header = parseHexStr(newHeaderHex);
         this.wram = parseHexStr(newWramHex);
@@ -175,7 +178,7 @@ class Capture {
         this.sram = mrsp.data;
     }
 
-    setFileContentsTo(el : HTMLElement | null) {
+    setFileContentsTo(el: HTMLElement | null) {
         if (!el) throw 'el must not be null';
         if (!(el instanceof HTMLInputElement)) throw 'el must be instanceof HTMLInputElement';
 
@@ -196,6 +199,42 @@ class Capture {
 // global to survive htmx
 window.snesCapture = new Capture();
 window.lastDeviceUris = ['garbage'];
+
+function viewResults() {
+    let capture: Capture = window.snesCapture;
+    capture.setFileContentsTo(document.getElementById('section'));
+
+    {
+        let viewer = document.getElementById('viewerHeader')!! as HexViewer;
+        viewer.displayTitle = "ROM Header";
+        viewer.filename = "header.bin";
+        viewer.address = 0xFFB0;
+        viewer.rows = 5;
+        viewer.data = capture.header;
+    }
+
+    {
+        let viewer = document.getElementById('viewerSram')!! as HexViewer;
+        viewer.displayTitle = "SRAM";
+        viewer.filename = "sram.bin";
+        viewer.address = 0;
+        viewer.rows = 16;
+        if (capture.sram) {
+            viewer.data = capture.sram;
+        } else {
+            viewer.data = new Uint8Array(0);
+        }
+    }
+
+    {
+        let viewer = document.getElementById('viewerWram')!! as HexViewer;
+        viewer.displayTitle = "WRAM";
+        viewer.filename = "wram.bin";
+        viewer.address = 0;
+        viewer.rows = 16;
+        viewer.data = capture.wram;
+    }
+}
 
 function loadDeviceList() {
     devicesClient.listDevices(DevicesRequest.create()).then(
@@ -247,7 +286,7 @@ function loadDeviceList() {
             let opts: Node[] = [];
             {
                 const el = document.createElement('option');
-                el.text = `SNI is required to use this tool`;
+                el.text = `SNI is required to capture SNES State`;
                 el.value = '';
                 opts.push(el);
             }
@@ -285,7 +324,7 @@ function bodySwapped() {
         await capture.captureWram();
         await capture.captureSram();
 
-        capture.setFileContentsTo(document.getElementById("section"));
+        viewResults();
     });
 
     document.getElementById('btnListDevices')?.addEventListener('click', loadDeviceList);
@@ -294,11 +333,11 @@ function bodySwapped() {
     setTimeout(loadDeviceList, 0);
 
     // if we're on a results page, make sure the captured data goes into the <input type="file">:
-    window.snesCapture.setFileContentsTo(document.getElementById('section'));
+    viewResults();
 }
 
 document.addEventListener('DOMContentLoaded', bodySwapped);
-document.addEventListener('htmx:afterSettle', function(evt) {
+document.addEventListener('htmx:afterSettle', function (evt) {
     if (evt.detail.successful != true) {
         /* Notify of an unexpected error, & print error to console */
         alert("Unexpected Error");

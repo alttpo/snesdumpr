@@ -1,7 +1,7 @@
 {
   "scripts": {
     "generate": "protoc --ts_out ./ts/sni/ --proto_path protos/sni/ sni.proto",
-    "build": "esbuild ts/index.ts --bundle --outfile=dist/index.js --sourcemap --target=es2022"
+    "build": "esbuild ts/index.ts ts/hex-viewer.ts --bundle --outdir=dist/ --sourcemap --target=es2022"
   },
   "dependencies": {
     "@protobuf-ts/grpcweb-transport": "^2.9.3",
