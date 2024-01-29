@@ -1,5 +1,7 @@
 
 export class HexViewer extends HTMLElement {
+    static observedAttributes = ["rows", "columns", "displayTitle", "filename", "address", "offset"];
+
     private table: HTMLTableElement | null = null;
 
     private _data : Uint8Array = new Uint8Array(0);
@@ -15,12 +17,6 @@ export class HexViewer extends HTMLElement {
     get data() { return this._data; }
     set data(a : Uint8Array) {
         this._data = a;
-        this.render();
-    }
-
-    get address() { return this._address; }
-    set address(v : number) {
-        this._address = v;
         this.render();
     }
 
@@ -48,6 +44,12 @@ export class HexViewer extends HTMLElement {
         this.render();
     }
 
+    get address() { return this._address; }
+    set address(v : number) {
+        this._address = v;
+        this.render();
+    }
+
     get offset() { return this._offset; }
     set offset(v : number) {
         this._offset = v;
@@ -60,21 +62,80 @@ export class HexViewer extends HTMLElement {
         const shadow = this.attachShadow({mode: "open"});
 
         const container = document.createElement('div');
-
         container.innerHTML = `<style>
-table,
-th,
-td {
+/* http://meyerweb.com/eric/tools/css/reset/ 
+   v2.0 | 20110126
+   License: none (public domain)
+*/
+
+html, body, div, span, applet, object, iframe,
+h1, h2, h3, h4, h5, h6, p, blockquote, pre,
+a, abbr, acronym, address, big, cite, code,
+del, dfn, em, img, ins, kbd, q, s, samp,
+small, strike, strong, sub, sup, tt, var,
+b, u, i, center,
+dl, dt, dd, ol, ul, li,
+fieldset, form, input, label, legend,
+table, caption, tbody, tfoot, thead, tr, th, td,
+article, aside, canvas, details, embed, 
+figure, figcaption, footer, header, hgroup, 
+menu, nav, output, ruby, section, summary,
+time, mark, audio, video {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 100%;
+  font: inherit;
+  vertical-align: baseline;
+}
+/* HTML5 display-role reset for older browsers */
+article, aside, details, figcaption, figure, 
+footer, header, hgroup, menu, nav, section {
+  display: block;
+}
+body {
+  line-height: 1;
+}
+ol, ul {
+  list-style: none;
+}
+blockquote, q {
+  quotes: none;
+}
+blockquote:before, blockquote:after,
+q:before, q:after {
+  content: '';
+  content: none;
+}
+table {
+  border-collapse: collapse;
+  border-spacing: 0;
+}
+</style>
+
+<style>
+#t {
+    font-family: monospace;
+}
+
+#t th,td {
     border: 0;
     border-collapse: collapse;
     padding: 2px;
-    font-family: monospace;
 }
-tr:nth-child(odd) {
+#t tr:nth-child(odd) {
     background-color: #ccc;
 }
 td.z {
     color: #888;
+}
+#offset {
+    font-family: monospace;
+    width: 6ch;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    background-color: chartreuse;
 }
 </style><table id="t"></table>`;
 
@@ -99,12 +160,36 @@ td.z {
                 let cell = row.insertCell();
                 cell.colSpan = columns + 1;
                 cell.style.textAlign = 'center';
-                cell.textContent = this._displayTitle;
+
+                let link = document.createElement('a');
+                link.href = "#";
+                link.download = "data.bin";
+                link.innerText = `${this._displayTitle}`;
+                link.title = `Download ${this._displayTitle} As Raw Binary Data`;
+
+                this.downloadLink = link;
+                cell.appendChild(link);
             }
 
             {
                 let row = head.insertRow();
-                row.insertCell().textContent = ''; // address
+                let cell = row.insertCell();
+                let offsetInput = document.createElement('input');
+                offsetInput.id = 'offset';
+                offsetInput.placeholder = 'offset';
+                offsetInput.value = this._offset.toString(16).padStart(6, '0');
+                let wc = this;
+                offsetInput.addEventListener('change', function () {
+                    // parse the value and hand it to the web component:
+                    let v = this.value;
+                    const n = parseInt(v, 16) || 0;
+                    wc.offset = n;
+                    // reformat the value:
+                    v = n.toString(16).toUpperCase().padStart(6, '0');
+                    this.value = v;
+                });
+                cell.appendChild(offsetInput);
+
                 for (let i = 0; i < columns; i++) {
                     row.insertCell().textContent = i.toString(16).toUpperCase();
                 }
@@ -123,29 +208,11 @@ td.z {
             }
         }
 
-        // create tfoot:
-        {
-            let foot = this.table.createTFoot();
-            let cell = foot.insertRow().insertCell()
-            cell.colSpan = columns + 1;
-
-            let link = document.createElement('a');
-            link.href = "#";
-            link.download = "data.bin";
-            link.innerText = `Download ${this._displayTitle}`;
-            this.downloadLink = link;
-
-            cell.appendChild(link);
-        }
-
         this.render();
     }
 
     render() {
-        // update title:
-        let tHead = this.table!!.tHead!!;
-        tHead.rows[0].cells[0].textContent = this._displayTitle;
-
+        // update title / download link:
         if (this.downloadLink) {
             let link = this.downloadLink;
             link.href = URL.createObjectURL(new Blob([this._data]));
@@ -181,19 +248,33 @@ td.z {
         }
     }
 
-    attributeChangedCallback() {
-        let lastRows = this._rows;
-        let lastColumns = this._columns;
-        this._rows = parseInt(this.getAttribute('rows') || '16', 10);
-        this._columns = parseInt(this.getAttribute('columns') || '16', 10);
-        if (this._rows != lastRows || this._columns != lastColumns) {
-            // reconstruct the <table> layout:
-            this.connectedCallback();
+    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+        switch (name) {
+            case 'rows':
+                this._rows = parseInt(newValue || '16', 10);
+                this.connectedCallback();
+                break;
+            case 'columns':
+                this._columns = parseInt(newValue || '16', 10);
+                this.connectedCallback();
+                break;
+            case 'address':
+                this._address = parseInt(newValue || '0', 16);
+                this.render();
+                break;
+            case 'offset':
+                this._offset = parseInt(newValue || '0', 16);
+                this.render();
+                break;
+            case 'displayTitle':
+                this._displayTitle = newValue || '';
+                this.render();
+                break;
+            case 'filename':
+                this._filename = newValue || '';
+                this.render();
+                break;
         }
-
-        // re-render data:
-        this._address = parseInt(this.getAttribute('address') || '0', 10);
-        this.render();
     }
 }
 
