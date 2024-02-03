@@ -204,8 +204,10 @@ function viewResults() {
     let capture: Capture = window.snesCapture;
     capture.setFileContentsTo(document.getElementById('section'));
 
-    {
-        let viewer = document.getElementById('viewerHeader')!! as HexViewer;
+    let el : HTMLElement | null;
+    el = document.getElementById('viewerHeader');
+    if (el) {
+        let viewer = el as HexViewer
         viewer.displayTitle = "ROM Header";
         viewer.filename = "header.bin";
         viewer.address = 0xFFB0;
@@ -213,8 +215,9 @@ function viewResults() {
         viewer.data = capture.header;
     }
 
-    {
-        let viewer = document.getElementById('viewerSram')!! as HexViewer;
+    el = document.getElementById('viewerSram');
+    if (el) {
+        let viewer = el as HexViewer;
         viewer.displayTitle = "SRAM";
         viewer.filename = "sram.bin";
         viewer.address = 0;
@@ -226,8 +229,9 @@ function viewResults() {
         }
     }
 
-    {
-        let viewer = document.getElementById('viewerWram')!! as HexViewer;
+    el = document.getElementById('viewerWram');
+    if (el) {
+        let viewer = el as HexViewer;
         viewer.displayTitle = "WRAM";
         viewer.filename = "wram.bin";
         viewer.address = 0;

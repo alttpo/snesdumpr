@@ -1,19 +1,32 @@
 
 export class HexViewer extends HTMLElement {
-    static observedAttributes = ["rows", "columns", "displayTitle", "filename", "address", "offset"];
+    static observedAttributes = [
+        "rows",
+        "columns",
+        "displayTitle",
+        "filename",
+        "address",
+        "offset",
+        "css-zero"
+    ];
 
+    // internal state:
     private table: HTMLTableElement | null = null;
-
-    private _data : Uint8Array = new Uint8Array(0);
-    private _offset: number = 0;
-    private _address: number = 0;
-    private _rows: number = 16;
-    private _columns: number = 16;
-    private _displayTitle: string = '';
-    private _filename: string = '';
-
     private downloadLink: HTMLAnchorElement | null = null;
 
+    // property-backing fields:
+    private _data : Uint8Array = new Uint8Array(0);
+
+    // attribute- and property-backing fields:
+    private _rows: number = 16;
+    private _columns: number = 16;
+    private _address: number = 0;
+    private _offset: number = 0;
+    private _displayTitle: string = '';
+    private _filename: string = '';
+    private _css_zero: string = '';
+
+    // public properties:
     get data() { return this._data; }
     set data(a : Uint8Array) {
         this._data = a;
@@ -32,13 +45,13 @@ export class HexViewer extends HTMLElement {
         this.connectedCallback();
     }
 
-    get displayTitle(): string {return this._displayTitle;}
+    get displayTitle(): string { return this._displayTitle; }
     set displayTitle(value: string) {
         this._displayTitle = value;
         this.render();
     }
 
-    get filename(): string {return this._filename;}
+    get filename(): string { return this._filename; }
     set filename(value: string) {
         this._filename = value;
         this.render();
@@ -58,97 +71,32 @@ export class HexViewer extends HTMLElement {
 
     constructor() {
         super();
-
-        const shadow = this.attachShadow({mode: "open"});
-
-        const container = document.createElement('div');
-        container.innerHTML = `<style>
-/* http://meyerweb.com/eric/tools/css/reset/ 
-   v2.0 | 20110126
-   License: none (public domain)
-*/
-
-html, body, div, span, applet, object, iframe,
-h1, h2, h3, h4, h5, h6, p, blockquote, pre,
-a, abbr, acronym, address, big, cite, code,
-del, dfn, em, img, ins, kbd, q, s, samp,
-small, strike, strong, sub, sup, tt, var,
-b, u, i, center,
-dl, dt, dd, ol, ul, li,
-fieldset, form, input, label, legend,
-table, caption, tbody, tfoot, thead, tr, th, td,
-article, aside, canvas, details, embed, 
-figure, figcaption, footer, header, hgroup, 
-menu, nav, output, ruby, section, summary,
-time, mark, audio, video {
-  margin: 0;
-  padding: 0;
-  border: 0;
-  font-size: 100%;
-  font: inherit;
-  vertical-align: baseline;
-}
-/* HTML5 display-role reset for older browsers */
-article, aside, details, figcaption, figure, 
-footer, header, hgroup, menu, nav, section {
-  display: block;
-}
-body {
-  line-height: 1;
-}
-ol, ul {
-  list-style: none;
-}
-blockquote, q {
-  quotes: none;
-}
-blockquote:before, blockquote:after,
-q:before, q:after {
-  content: '';
-  content: none;
-}
-table {
-  border-collapse: collapse;
-  border-spacing: 0;
-}
-</style>
-
-<style>
-#t {
-    font-family: monospace;
-}
-
-#t th,td {
-    border: 0;
-    border-collapse: collapse;
-    padding: 2px;
-}
-#t tr:nth-child(odd) {
-    background-color: #ccc;
-}
-td.z {
-    color: #888;
-}
-#offset {
-    font-family: monospace;
-    width: 6ch;
-    border: 0;
-    margin: 0;
-    padding: 0;
-    background-color: chartreuse;
-}
-</style><table id="t"></table>`;
-
-        shadow.appendChild(container);
     }
 
     connectedCallback() {
+        // select the first <table> element or create a new one and append it:
+        this.table = (this.querySelector('table') as HTMLTableElement)
+            ?? (this.appendChild(document.createElement('table')));
         // reset the table:
-        this.table = this.shadowRoot!!.getElementById('t') as HTMLTableElement;
         this.table.innerHTML = '';
 
         let rows = this._rows;
         let columns = this._columns;
+
+        // caption:
+        {
+            let caption = this.table.appendChild(document.createElement('caption'));
+            caption.style.textAlign = 'center';
+
+            let link = document.createElement('a');
+            link.href = "#";
+            link.download = "data.bin";
+            link.innerText = `${this._displayTitle}`;
+            link.title = `Download ${this._displayTitle} As Raw Binary Data`;
+
+            this.downloadLink = link;
+            caption.appendChild(link);
+        }
 
         // create thead:
         {
@@ -158,24 +106,8 @@ td.z {
             {
                 let row = head.insertRow();
                 let cell = row.insertCell();
-                cell.colSpan = columns + 1;
-                cell.style.textAlign = 'center';
-
-                let link = document.createElement('a');
-                link.href = "#";
-                link.download = "data.bin";
-                link.innerText = `${this._displayTitle}`;
-                link.title = `Download ${this._displayTitle} As Raw Binary Data`;
-
-                this.downloadLink = link;
-                cell.appendChild(link);
-            }
-
-            {
-                let row = head.insertRow();
-                let cell = row.insertCell();
                 let offsetInput = document.createElement('input');
-                offsetInput.id = 'offset';
+                offsetInput.className = 'offset';
                 offsetInput.placeholder = 'offset';
                 offsetInput.value = this._offset.toString(16).padStart(6, '0');
                 let wc = this;
@@ -236,10 +168,8 @@ td.z {
                 if (p < len) {
                     let d = this._data[p];
                     cell.textContent = d.toString(16).toUpperCase().padStart(2, '0');
-                    if (d == 0) {
-                        cell.className = "z";
-                    } else {
-                        cell.className = "";
+                    if (this._css_zero != '' && d == 0) {
+                        cell.className = this._css_zero;
                     }
                 } else {
                     cell.textContent = "--";
@@ -272,6 +202,11 @@ td.z {
                 break;
             case 'filename':
                 this._filename = newValue || '';
+                this.render();
+                break;
+            // CSS related:
+            case 'css-zero': // the class to apply to a <td> when its data is 0-valued.
+                this._css_zero = newValue || '';
                 this.render();
                 break;
         }

@@ -86,7 +86,8 @@ func StartGin() {
 	templ := template.Must(template.New("").ParseFS(f, "*.html"))
 	router.SetHTMLTemplate(templ)
 
-	router.Static("/js/", "dist")
+	router.Static("/js/", "dist/js")
+	router.Static("/css/", "dist/css")
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(200, "index.html", gin.H{})

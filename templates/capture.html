@@ -1,11 +1,22 @@
 <div>
-    <label for="lstDevices">Select Your SNES Device: </label><select id="lstDevices" hx-preserve="true"></select>
-    <button id="btnListDevices">...</button>
+    <div class="flex flex-row gap-8">
+        <label for="lstDevices">Select Your SNES Device: </label>
+        <select id="lstDevices"
+                hx-preserve="true"
+                class="text-white bg-blue-950 rounded-lg"
+        ></select>
+        <button id="btnListDevices"
+                class="py-1 px-3 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+        >...</button>
+        <button id="btnCapture"
+                disabled="disabled"
+                class="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+        >Capture SNES State</button>
+        <form hx-post="/save" hx-encoding="multipart/form-data">
+            <input type="file" name="section" id="section" hidden="hidden">
+            <button type="submit"
+                    class="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+            >Share This State</button>
+        </form>
+    </div>
 </div>
-<div>
-    <button id="btnCapture" disabled="disabled">Capture SNES State</button>
-</div>
-<form hx-post="/save" hx-encoding="multipart/form-data">
-    <input type="file" name="section" id="section" hidden="hidden">
-    <button type="submit">Share This State</button>
-</form>

@@ -1,0 +1,35 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-gray-50 text-gray-950 dark:bg-gray-900 dark:text-gray-300 flex flex-col space-y-4 space-x-2 m-6;
+    }
+}
+
+@layer components {
+    hex-viewer {
+        @apply font-normal;
+    }
+    hex-viewer thead > tr {
+        @apply font-mono text-sm text-left bg-gray-50 text-gray-950 dark:bg-slate-700 dark:text-gray-300;
+    }
+    hex-viewer tbody > tr {
+        @apply font-mono text-sm text-left bg-gray-50 text-gray-950 dark:bg-slate-700 dark:text-gray-300;
+    }
+    hex-viewer tbody > tr:nth-child(even) {
+        @apply bg-gray-100 text-gray-900 dark:bg-slate-800 dark:text-gray-300;
+    }
+    hex-viewer td {
+        @apply px-0.5 py-1;
+    }
+    hex-viewer td.z {
+        @apply text-gray-400;
+    }
+    hex-viewer .offset {
+        @apply bg-amber-700 dark:bg-amber-900;
+        width: 6ch;
+        box-shadow: inset 1px 1px 1px 1px darkslategray;
+    }
+}
