@@ -13,6 +13,7 @@ import (
 	"log"
 	"mime"
 	"mime/multipart"
+	"net/url"
 	"os"
 	"runtime"
 	"strings"
@@ -163,7 +164,18 @@ func StartGin() {
 			[]byte(val["wram"]),
 			[]byte(val["sram"])
 
+		u := &url.URL{
+			Host: c.Request.Host,
+		}
+		if c.Request.TLS != nil {
+			u.Scheme = "https"
+		} else {
+			u.Scheme = "http"
+		}
+		u = u.ResolveReference(c.Request.URL)
+
 		c.HTML(200, "results.html", gin.H{
+			"Url":      u.String(),
 			"HeaderJS": toJSHexString(header),
 			"WramJS":   toJSHexString(wram),
 			"SramJS":   toJSHexString(sram),

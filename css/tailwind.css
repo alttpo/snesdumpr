@@ -24,8 +24,14 @@
     hex-viewer td {
         @apply px-0.5 py-1;
     }
-    hex-viewer td.z {
-        @apply text-gray-400;
+    hex-viewer tbody > tr > td:nth-last-child(1) {
+        @apply pl-4;
+    }
+    hex-viewer tbody > tr > td:nth-child(1) {
+        @apply pr-4;
+    }
+    hex-viewer .z {
+        @apply text-gray-500;
     }
     hex-viewer .offset {
         @apply bg-amber-700 dark:bg-amber-900;

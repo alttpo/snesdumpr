@@ -333,6 +333,12 @@ function bodySwapped() {
 
     document.getElementById('btnListDevices')?.addEventListener('click', loadDeviceList);
 
+    document.getElementById('btnShare')?.addEventListener('click', function () {
+        // Copy the text inside the text field
+        const link = (document.getElementById('hrefSelf') as HTMLAnchorElement).href;
+        const _ = navigator.clipboard.writeText(link);
+    });
+
     // load list of devices on startup:
     setTimeout(loadDeviceList, 0);
 
