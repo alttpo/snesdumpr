@@ -137,6 +137,7 @@ export class HexViewer extends HTMLElement {
                 for (let i = 0; i < columns; i++) {
                     row.insertCell().textContent = "--";
                 }
+                row.insertCell().textContent = "................";
             }
         }
 
@@ -149,7 +150,7 @@ export class HexViewer extends HTMLElement {
             let link = this.downloadLink;
             link.href = URL.createObjectURL(new Blob([this._data]));
             link.download = this._filename;
-            link.innerText = `Download ${this._displayTitle}`;
+            link.innerText = this._displayTitle;
         }
 
         let rows = this._rows;
@@ -161,6 +162,7 @@ export class HexViewer extends HTMLElement {
 
         let tBody = this.table!!.tBodies[0]!!;
         for (let r = 0; r < rows; r++) {
+            let ascii : string[] = [];
             let row = tBody.rows[r]!!;
             row.cells[0].textContent = (p+this._address).toString(16).toUpperCase().padStart(6, '0');
             for (let c = 0; c < columns; c++, p++) {
@@ -170,11 +172,20 @@ export class HexViewer extends HTMLElement {
                     cell.textContent = d.toString(16).toUpperCase().padStart(2, '0');
                     if (this._css_zero != '' && d == 0) {
                         cell.className = this._css_zero;
+                        ascii.push(`<span class="${this._css_zero}">.</span>`);
+                    } else {
+                        cell.className = '';
+                        if (d >= 32 && d <= 127) {
+                            ascii.push(String.fromCharCode(d));
+                        } else {
+                            ascii.push('.');
+                        }
                     }
                 } else {
                     cell.textContent = "--";
                 }
             }
+            row.cells[1+columns].innerHTML = '<pre>' + ascii.join('') + '</pre>';
         }
     }
 
