@@ -244,6 +244,15 @@ func StartGin() {
 			HostPolicy: hostPolicy,
 			Cache:      autocert.DirCache(dataDir),
 		}
+
+		// listen on port 80 for http-01 challenges:
+		go func() {
+			http01 := &http.Server{Handler: m.HTTPHandler(nil)}
+			if err := http01.ListenAndServe(); err != nil {
+				log.Panicf("http-01 server error: %s\n", err)
+			}
+		}()
+
 		srv := &http.Server{
 			Addr:      ":443",
 			TLSConfig: &tls.Config{GetCertificate: m.GetCertificate},
@@ -251,7 +260,7 @@ func StartGin() {
 		}
 
 		if err := srv.ListenAndServeTLS("", ""); err != nil {
-			log.Panicf("error: %s\n", err)
+			log.Panicf("tls server error: %s\n", err)
 		}
 	} else {
 		// non-TLS:
