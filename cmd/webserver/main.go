@@ -138,7 +138,7 @@ func StartGin() {
 		var mr *multipart.Reader
 		mr, err = c.Request.MultipartReader()
 		if err != nil {
-			log.Printf("error getting MultipartReader: %v\n", err)
+			log.Printf("save: error getting MultipartReader: %v\n", err)
 			c.AbortWithError(400, err)
 			return
 		}
@@ -153,12 +153,12 @@ func StartGin() {
 				break
 			}
 			if err != nil {
-				log.Printf("error advancing MultipartReader::NextPart: %v\n", err)
+				log.Printf("save: error advancing MultipartReader::NextPart: %v\n", err)
 				c.AbortWithError(500, err)
 				return
 			}
 
-			var b *[]byte
+			var b *[]byte = nil
 			switch strings.ToLower(part.FileName()) {
 			case "header":
 				b = &header
@@ -169,11 +169,16 @@ func StartGin() {
 			case "sram":
 				b = &sram
 				break
+			default:
+				log.Printf("save: unexpected filename '%s' formname '%s'\n", part.FileName(), part.FormName())
+				c.Status(400)
+				c.Abort()
+				return
 			}
 
 			*b, err = io.ReadAll(part)
 			if err != nil {
-				log.Printf("error reading from multipart.Part: %v\n", err)
+				log.Printf("save: error reading from multipart.Part: %v\n", err)
 				c.AbortWithError(500, err)
 				return
 			}
@@ -181,8 +186,9 @@ func StartGin() {
 
 		// minimum requirements:
 		if header == nil || wram == nil {
+			log.Printf("save: missing header and wram parts\n")
+			c.Status(400)
 			c.Abort()
-			c.String(400, `<div></div>`)
 			return
 		}
 
@@ -209,7 +215,7 @@ func StartGin() {
 		}
 		err = rcl.HSet(c, "snes."+hs, values...).Err()
 		if err != nil {
-			log.Printf("error redis HSET: %v\n", err)
+			log.Printf("save: error redis HSET: %v\n", err)
 			c.AbortWithError(500, err)
 			return
 		}
