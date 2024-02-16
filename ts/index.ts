@@ -49,15 +49,15 @@ class Capture {
 
     constructor() {
         this.hash = '';
-        this.header = new Uint8Array(0x10000 - 0xFFB0);
-        this.wram = new Uint8Array(0x20000);
+        this.header = new Uint8Array(0);
+        this.wram = new Uint8Array(0);
         this.sram = null;
     }
 
     reset() {
         this.hash = '';
-        this.header.fill(0);
-        this.wram.fill(0);
+        this.header = new Uint8Array(0);
+        this.wram = new Uint8Array(0);
         this.sram = null;
     }
 
@@ -110,8 +110,8 @@ class Capture {
         let mrsp = rsp.response.response;
         if (!mrsp) return;
 
-        console.log(mrsp.data);
-        this.header.set(mrsp.data);
+        // console.log(mrsp.data);
+        this.header = mrsp.data;
     }
 
     sramSize() {
@@ -147,8 +147,8 @@ class Capture {
         let mrsp = rsp.response.response;
         if (!mrsp) return;
 
-        console.log(mrsp.data);
-        this.wram.set(mrsp.data);
+        // console.log(mrsp.data);
+        this.wram = mrsp.data;
     }
 
     async captureSram() {
@@ -178,12 +178,12 @@ class Capture {
         let mrsp = rsp.response.response;
         if (!mrsp) return;
 
-        console.log(mrsp.data);
+        // console.log(mrsp.data);
         this.sram = mrsp.data;
     }
 
     setFileContentsTo(el: HTMLElement | null) {
-        if (!el) throw 'el must not be null';
+        if (!el) return;
         if (!(el instanceof HTMLInputElement)) throw 'el must be instanceof HTMLInputElement';
 
         // assign fetched Blobs as files to a <input type="file"> element:
@@ -206,6 +206,12 @@ window.lastDeviceUris = ['garbage'];
 
 function viewResults() {
     let capture: Capture = window.snesCapture;
+    if (capture.header.length == 0) {
+        // no results to show
+        document.getElementById('vwResults')?.setAttribute('hidden', 'hidden');
+        return;
+    }
+
     capture.setFileContentsTo(document.getElementById('section'));
 
     let el : HTMLElement | null;
@@ -242,6 +248,9 @@ function viewResults() {
         viewer.rows = 16;
         viewer.data = capture.wram;
     }
+
+    // reveal the results div:
+    document.getElementById('vwResults')?.removeAttribute('hidden');
 }
 
 function loadDeviceList() {
