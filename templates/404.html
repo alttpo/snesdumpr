@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="en">
+{{template "head.html"}}
+<body>
+{{template "capture.html"}}
+<div>Sorry, no SNES capture found at this URL!</div>
+<script type="application/javascript">
+    let capture = window.snesCapture;
+    capture.reset();
+</script>
+</body>
+</html>

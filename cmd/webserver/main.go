@@ -1,7 +1,7 @@
 package main
 
 import (
-	"crypto/sha512"
+	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
@@ -20,22 +20,6 @@ import (
 )
 
 var rcl *redis.Client
-
-func CORSMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-
-		c.Next()
-	}
-}
 
 func main() {
 	ConfigRuntime()
@@ -66,7 +50,7 @@ func WatchTemplateFolder(router *gin.Engine) {
 						//log.Println("modified file:", event.Name)
 						// file updated:
 						var templ *template.Template
-						if templ, err = template.New("").ParseFS(f, "*.html"); err != nil {
+						if templ, err = template.New("").ParseFS(templatesFS, "*.html"); err != nil {
 							log.Printf("error parsing template files: %v\n", err)
 							continue
 						}
@@ -92,7 +76,7 @@ func WatchTemplateFolder(router *gin.Engine) {
 
 	// production || debug mode:
 	{
-		templ := template.Must(template.New("").ParseFS(f, "*.html"))
+		templ := template.Must(template.New("").ParseFS(templatesFS, "*.html"))
 		router.SetHTMLTemplate(templ)
 	}
 }
@@ -117,9 +101,21 @@ func ConnectRedis() {
 	rcl = redis.NewClient(opts)
 }
 
-// //go:embed templates/*
-// var f embed.FS
-var f = os.DirFS("templates")
+func CORSMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Content-Length, Accept-Encoding, X-CSRF-Token, Authorization, accept, origin, Cache-Control, X-Requested-With")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS, GET, PUT")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+
+		c.Next()
+	}
+}
 
 // StartGin starts gin web server with setting router.
 func StartGin() {
@@ -150,19 +146,6 @@ func StartGin() {
 
 	router.GET("/d/:hash", func(c *gin.Context) {
 		var err error
-		hs := c.Param("hash")
-
-		var val map[string]string
-		val, err = rcl.HGetAll(c, hs).Result()
-		if err != nil {
-			c.AbortWithError(500, err)
-			return
-		}
-
-		header, wram, sram :=
-			[]byte(val["header"]),
-			[]byte(val["wram"]),
-			[]byte(val["sram"])
 
 		u := &url.URL{
 			Host: c.Request.Host,
@@ -173,6 +156,28 @@ func StartGin() {
 			u.Scheme = "http"
 		}
 		u = u.ResolveReference(c.Request.URL)
+
+		hs := c.Param("hash")
+
+		var val map[string]string
+		val, err = rcl.HGetAll(c, "snes."+hs).Result()
+		if err != nil {
+			c.AbortWithError(500, err)
+			return
+		}
+
+		if len(val) == 0 {
+			c.HTML(404, "404.html", gin.H{
+				"Url":  u.String(),
+				"Hash": hs,
+			})
+			return
+		}
+
+		header, wram, sram :=
+			[]byte(val["header"]),
+			[]byte(val["wram"]),
+			[]byte(val["sram"])
 
 		c.HTML(200, "results.html", gin.H{
 			"Url":      u.String(),
@@ -234,12 +239,12 @@ func StartGin() {
 		// minimum requirements:
 		if header == nil || wram == nil {
 			c.Abort()
-			c.String(400, `<div id=""></div>`)
+			c.String(400, `<div></div>`)
 			return
 		}
 
 		// hash all the contents together:
-		h := sha512.New()
+		h := sha256.New()
 		h.Write(header)
 		h.Write(wram)
 		if sram != nil {
@@ -247,7 +252,10 @@ func StartGin() {
 		}
 
 		// url-base64 encode that hash (with no padding = chars):
-		hs := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+		src := h.Sum(nil)
+		buf := make([]byte, base64.RawURLEncoding.EncodedLen(len(src)))
+		base64.RawURLEncoding.Encode(buf, src)
+		hs := string(buf)
 
 		// redis HSET:
 		values := make([]any, 0, 6)
@@ -256,7 +264,7 @@ func StartGin() {
 		if sram != nil {
 			values = append(values, "sram", sram)
 		}
-		err = rcl.HSet(c, hs, values...).Err()
+		err = rcl.HSet(c, "snes."+hs, values...).Err()
 		if err != nil {
 			log.Printf("error redis HSET: %v\n", err)
 			c.AbortWithError(500, err)
@@ -278,7 +286,7 @@ func StartGin() {
 
 func toJSHexString(b []byte) string {
 	if len(b) == 0 {
-		return "null"
+		return ""
 	}
 
 	s := make([]byte, hex.EncodedLen(len(b)))
