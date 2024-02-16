@@ -8,6 +8,7 @@ import (
 	"html/template"
 	"io/fs"
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -67,4 +68,9 @@ func WatchTemplateFolder(router *gin.Engine) {
 		templ := template.Must(template.New("").ParseFS(templatesFS, "*.html"))
 		router.SetHTMLTemplate(templ)
 	}
+}
+
+func SetupStaticAssets(router *gin.Engine) {
+	router.StaticFS("/js/", http.FS(os.DirFS("cmd/webserver/dist/js")))
+	router.StaticFS("/css/", http.FS(os.DirFS("cmd/webserver/dist/css")))
 }
