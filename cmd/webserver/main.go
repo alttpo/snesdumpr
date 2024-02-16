@@ -5,10 +5,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"github.com/fsnotify/fsnotify"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
-	"html/template"
 	"io"
 	"log"
 	"mime"
@@ -25,60 +23,6 @@ func main() {
 	ConfigRuntime()
 	ConnectRedis()
 	StartGin()
-}
-
-func WatchTemplateFolder(router *gin.Engine) {
-	if gin.IsDebugging() {
-		// Create new watcher.
-		watcher, err := fsnotify.NewWatcher()
-		if err != nil {
-			log.Fatal(err)
-		}
-		//defer watcher.Close()
-
-		// Start listening for events.
-		go func() {
-			var err error
-			for {
-				select {
-				case event, ok := <-watcher.Events:
-					if !ok {
-						return
-					}
-					log.Println("event:", event)
-					if event.Has(fsnotify.Write) {
-						//log.Println("modified file:", event.Name)
-						// file updated:
-						var templ *template.Template
-						if templ, err = template.New("").ParseFS(templatesFS, "*.html"); err != nil {
-							log.Printf("error parsing template files: %v\n", err)
-							continue
-						}
-						log.Printf("new templates parsed\n")
-						router.SetHTMLTemplate(templ)
-
-					}
-				case err, ok := <-watcher.Errors:
-					if !ok {
-						return
-					}
-					log.Println("error:", err)
-				}
-			}
-		}()
-
-		// watch the templates/ folder:
-		err = watcher.Add("templates")
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
-	// production || debug mode:
-	{
-		templ := template.Must(template.New("").ParseFS(templatesFS, "*.html"))
-		router.SetHTMLTemplate(templ)
-	}
 }
 
 // ConfigRuntime sets the number of operating system threads.
