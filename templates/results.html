@@ -8,6 +8,7 @@
 let capture = window.snesCapture;
 capture.reset();
 capture.withHexStrings(
+    {{ .Hash }},
     {{ .HeaderJS }},
     {{ .WramJS }},
     {{ .SramJS }}

@@ -42,24 +42,28 @@ function parseHexStr(x: string): Uint8Array {
 }
 
 class Capture {
+    hash: string;
     header: Uint8Array; // ROM header from FFB0..FFFF
     wram: Uint8Array;
     sram: Uint8Array | null;
 
     constructor() {
+        this.hash = '';
         this.header = new Uint8Array(0x10000 - 0xFFB0);
         this.wram = new Uint8Array(0x20000);
         this.sram = null;
     }
 
     reset() {
+        this.hash = '';
         this.header.fill(0);
         this.wram.fill(0);
         this.sram = null;
     }
 
     // noinspection JSUnusedGlobalSymbols
-    withHexStrings(newHeaderHex: string, newWramHex: string, newSramHex: string | null) {
+    withHexStrings(hash: string, newHeaderHex: string, newWramHex: string, newSramHex: string | null) {
+        this.hash = hash;
         this.header = parseHexStr(newHeaderHex);
         this.wram = parseHexStr(newWramHex);
         if (newSramHex) {
@@ -209,7 +213,7 @@ function viewResults() {
     if (el) {
         let viewer = el as HexViewer
         viewer.displayTitle = "ROM Header";
-        viewer.filename = "header.bin";
+        viewer.filename = capture.hash + ".header.bin";
         viewer.address = 0xFFB0;
         viewer.rows = 5;
         viewer.data = capture.header;
@@ -219,7 +223,7 @@ function viewResults() {
     if (el) {
         let viewer = el as HexViewer;
         viewer.displayTitle = "SRAM";
-        viewer.filename = "sram.bin";
+        viewer.filename = capture.hash + ".sram.bin";
         viewer.address = 0;
         viewer.rows = 16;
         if (capture.sram) {
@@ -233,7 +237,7 @@ function viewResults() {
     if (el) {
         let viewer = el as HexViewer;
         viewer.displayTitle = "WRAM";
-        viewer.filename = "wram.bin";
+        viewer.filename = capture.hash + ".wram.bin";
         viewer.address = 0;
         viewer.rows = 16;
         viewer.data = capture.wram;

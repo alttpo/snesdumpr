@@ -176,6 +176,7 @@ func StartGin() {
 
 		c.HTML(200, "results.html", gin.H{
 			"Url":      u.String(),
+			"Hash":     hs,
 			"HeaderJS": toJSHexString(header),
 			"WramJS":   toJSHexString(wram),
 			"SramJS":   toJSHexString(sram),
