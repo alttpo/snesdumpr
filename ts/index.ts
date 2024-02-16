@@ -305,6 +305,9 @@ function loadDeviceList() {
 }
 
 function bodySwapped() {
+    // disable share button by default:
+    document.getElementById('btnShare')?.setAttribute('disabled', 'disabled');
+
     // enable/disable Capture button depending on selected device:
     document.getElementById('lstDevices')?.addEventListener('change', function (this: HTMLSelectElement) {
         let btnCapture = document.getElementById('btnCapture');
@@ -332,15 +335,18 @@ function bodySwapped() {
         await capture.captureWram();
         await capture.captureSram();
 
+        // enable share button:
+        document.getElementById('btnShare')?.removeAttribute('disabled');
+
         viewResults();
     });
 
     document.getElementById('btnListDevices')?.addEventListener('click', loadDeviceList);
 
-    document.getElementById('btnShare')?.addEventListener('click', function () {
+    document.getElementById('btnCopyLink')?.addEventListener('click', function () {
         // Copy the text inside the text field
         const link = (document.getElementById('hrefSelf') as HTMLAnchorElement).href;
-        const _ = navigator.clipboard.writeText(link);
+        void navigator.clipboard.writeText(link);
     });
 
     // load list of devices on startup:

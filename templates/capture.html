@@ -13,12 +13,14 @@
     <div class="flex flex-row gap-8 justify-center place-content-center my-4">
         <button id="btnCapture"
                 disabled="disabled"
-                class="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+                class="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 disabled:bg-gray-600 cursor-auto disabled:cursor-not-allowed"
         >Capture SNES State</button>
         <form hx-post="/save" hx-encoding="multipart/form-data">
             <input type="file" name="section" id="section" hidden="hidden">
             <button type="submit"
-                    class="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75"
+                    id="btnShare"
+                    disabled="disabled"
+                    class="py-2 px-4 bg-blue-500 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75 disabled:bg-gray-600 cursor-auto disabled:cursor-not-allowed"
             >Share This State</button>
         </form>
     </div>
