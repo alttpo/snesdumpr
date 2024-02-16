@@ -1,10 +1,10 @@
 {
   "scripts": {
-    "grpc-gen": "protoc --ts_out ./ts/sni/ --proto_path protos/sni/ sni.proto",
-    "css": "tailwindcss -i ./css/tailwind.css -o ./dist/css/tailwind.css",
-    "csswatch": "tailwindcss -i ./css/tailwind.css -o ./dist/css/tailwind.css --watch",
-    "build": "esbuild ts/index.ts ts/hex-viewer.ts --bundle --outdir=dist/js/ --sourcemap --target=es2022",
-    "watch": "esbuild ts/index.ts ts/hex-viewer.ts --bundle --outdir=dist/js/ --sourcemap --target=es2022 --watch"
+    "grpc": "protoc --ts_out ./ts/sni/ --proto_path protos/sni/ sni.proto",
+    "css": "tailwindcss -i ./css/tailwind.css -o cmd/webserver/dist/css/tailwind.css",
+    "css-watch": "tailwindcss -i ./css/tailwind.css -o cmd/webserver/dist/css/tailwind.css --watch",
+    "ts": "esbuild ts/index.ts ts/hex-viewer.ts --bundle --outdir=cmd/webserver/dist/js/ --sourcemap --target=es2022",
+    "ts-watch": "esbuild ts/index.ts ts/hex-viewer.ts --bundle --outdir=cmd/webserver/dist/js/ --sourcemap --target=es2022 --watch"
   },
   "dependencies": {
     "@protobuf-ts/grpcweb-transport": "^2.9.3",

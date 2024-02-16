@@ -11,6 +11,7 @@ import (
 	"log"
 	"mime"
 	"mime/multipart"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime"
@@ -81,8 +82,10 @@ func StartGin() {
 
 	WatchTemplateFolder(router)
 
-	router.Static("/js/", "dist/js")
-	router.Static("/css/", "dist/css")
+	//router.Static("/js/", "dist/js")
+	router.StaticFS("/js/", http.FS(os.DirFS("dist/js")))
+	//router.Static("/css/", "dist/css")
+	router.StaticFS("/css/", http.FS(os.DirFS("dist/css")))
 
 	router.GET("/", func(c *gin.Context) {
 		c.HTML(200, "index.html", gin.H{})

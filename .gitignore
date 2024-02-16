@@ -25,7 +25,7 @@ go.work
 
 # Temporary content
 node_modules/
-dist/
+cmd/webserver/dist/
 
 # Generated code
 ts/sni/sni.client.ts
