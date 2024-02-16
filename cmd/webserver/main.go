@@ -1,16 +1,20 @@
 package main
 
 import (
+	"context"
 	"crypto/sha256"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	"golang.org/x/crypto/acme/autocert"
 	"io"
 	"log"
 	"mime"
 	"mime/multipart"
+	"net/http"
 	"net/url"
 	"os"
 	"runtime"
@@ -224,12 +228,41 @@ func StartGin() {
 		c.Status(201)
 	})
 
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = "8080"
-	}
-	if err := router.Run(":" + port); err != nil {
-		log.Panicf("error: %s", err)
+	allowedHost := os.Getenv("ALLOWED_HOST")
+	if allowedHost != "" {
+		// TLS with lets encrypt:
+		dataDir := "."
+		hostPolicy := func(ctx context.Context, host string) error {
+			if host == allowedHost {
+				return nil
+			}
+			return fmt.Errorf("acme/autocert: only %s host is allowed", allowedHost)
+		}
+
+		m := &autocert.Manager{
+			Prompt:     autocert.AcceptTOS,
+			HostPolicy: hostPolicy,
+			Cache:      autocert.DirCache(dataDir),
+		}
+		srv := &http.Server{
+			Addr:      ":443",
+			TLSConfig: &tls.Config{GetCertificate: m.GetCertificate},
+			Handler:   router.Handler(),
+		}
+
+		if err := srv.ListenAndServeTLS("", ""); err != nil {
+			log.Panicf("error: %s\n", err)
+		}
+	} else {
+		// non-TLS:
+		port := os.Getenv("PORT")
+		if port == "" {
+			port = "8080"
+		}
+
+		if err := router.Run(":" + port); err != nil {
+			log.Panicf("error: %s", err)
+		}
 	}
 }
 
