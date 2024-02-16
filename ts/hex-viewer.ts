@@ -145,6 +145,10 @@ export class HexViewer extends HTMLElement {
     }
 
     render() {
+        if (!this.table) {
+            return;
+        }
+
         // update title / download link:
         if (this.downloadLink) {
             let link = this.downloadLink;
