@@ -26,6 +26,8 @@ export class HexViewer extends HTMLElement {
     private _filename: string = '';
     private _css_zero: string = '';
 
+    private _offsetInput: HTMLInputElement | null = null;
+
     // public properties:
     get data() { return this._data; }
     set data(a : Uint8Array) {
@@ -65,7 +67,19 @@ export class HexViewer extends HTMLElement {
 
     get offset() { return this._offset; }
     set offset(v : number) {
+        if (v < 0) { v = 0; }
+        if (v > this._data.length) { v = this._data.length; }
+
         this._offset = v;
+
+        // set the value on the input element:
+        if (this._offsetInput) {
+            this._offsetInput.value = (Math.floor(v / this._columns) * this._columns)
+                .toString(16)
+                .toUpperCase()
+                .padStart(6, '0');
+        }
+
         this.render();
     }
 
@@ -109,7 +123,7 @@ export class HexViewer extends HTMLElement {
                 let offsetInput = document.createElement('input');
                 offsetInput.className = 'offset';
                 offsetInput.placeholder = 'offset';
-                offsetInput.value = this._offset.toString(16).padStart(6, '0');
+                offsetInput.value = Math.floor(this._offset).toString(16).padStart(6, '0');
                 let wc = this;
                 offsetInput.addEventListener('change', function () {
                     // parse the value and hand it to the web component:
@@ -121,6 +135,7 @@ export class HexViewer extends HTMLElement {
                     this.value = v;
                 });
                 cell.appendChild(offsetInput);
+                this._offsetInput = offsetInput;
 
                 for (let i = 0; i < columns; i++) {
                     row.insertCell().textContent = i.toString(16).toUpperCase();
@@ -139,6 +154,13 @@ export class HexViewer extends HTMLElement {
                 }
                 row.insertCell().textContent = "................";
             }
+
+            let wc = this;
+            body.addEventListener('wheel', function (e) {
+                e.preventDefault();
+                // console.log(e);
+                wc.offset += e.deltaY * 0.125 * wc._columns;
+            });
         }
 
         this.render();
@@ -161,7 +183,7 @@ export class HexViewer extends HTMLElement {
 
         let columns = this._columns;
         let len = this._data.length;
-        let p = (this._offset ?? 0);
+        let p = Math.floor(this._offset ?? 0);
         p = Math.floor(p / columns) * columns;
 
         let tBody = this.table!!.tBodies[0]!!;
@@ -179,14 +201,16 @@ export class HexViewer extends HTMLElement {
                         ascii.push(`<span class="${this._css_zero}">.</span>`);
                     } else {
                         cell.className = '';
-                        if (d >= 32 && d <= 127) {
+                        if (d >= 32 && d < 127) {
                             ascii.push(String.fromCharCode(d));
                         } else {
                             ascii.push('.');
                         }
                     }
                 } else {
+                    cell.className = '';
                     cell.textContent = "--";
+                    ascii.push('-');
                 }
             }
             row.cells[1+columns].innerHTML = '<pre>' + ascii.join('') + '</pre>';
