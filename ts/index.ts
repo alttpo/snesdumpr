@@ -3,6 +3,7 @@
 import 'htmx.org';
 
 import {HexViewer} from './hex-viewer';
+import './download-icon';
 
 import {GrpcWebFetchTransport} from "@protobuf-ts/grpcweb-transport";
 import {FinishedUnaryCall} from "@protobuf-ts/runtime-rpc/build/types/unary-call";

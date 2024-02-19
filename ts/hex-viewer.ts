@@ -13,6 +13,7 @@ export class HexViewer extends HTMLElement {
     // internal state:
     private table: HTMLTableElement | null = null;
     private downloadLink: HTMLAnchorElement | null = null;
+    private downloadSpan: HTMLSpanElement | null = null;
 
     // property-backing fields:
     private _data : Uint8Array = new Uint8Array(0);
@@ -102,14 +103,21 @@ export class HexViewer extends HTMLElement {
             let caption = this.table.appendChild(document.createElement('caption'));
             caption.style.textAlign = 'center';
 
+            let span = document.createElement('span');
+            span.innerText = this._displayTitle;
+            caption.appendChild(span);
+            this.downloadSpan = span;
+
+            span.insertAdjacentHTML('afterend', "&nbsp;");
+
             let link = document.createElement('a');
             link.href = "#";
             link.download = "data.bin";
-            link.innerText = `${this._displayTitle}`;
+            link.innerHTML = `<download-icon />`; // custom element
             link.title = `Download ${this._displayTitle} As Raw Binary Data`;
+            caption.appendChild(link);
 
             this.downloadLink = link;
-            caption.appendChild(link);
         }
 
         // create thead:
@@ -152,7 +160,7 @@ export class HexViewer extends HTMLElement {
                 for (let i = 0; i < columns; i++) {
                     row.insertCell().textContent = "--";
                 }
-                row.insertCell().textContent = "................";
+                row.insertCell().textContent = ".".repeat(columns);
             }
 
             let wc = this;
@@ -176,7 +184,9 @@ export class HexViewer extends HTMLElement {
             let link = this.downloadLink;
             link.href = URL.createObjectURL(new Blob([this._data]));
             link.download = this._filename;
-            link.innerText = this._displayTitle;
+            if (this.downloadSpan) {
+                this.downloadSpan.innerText = this._displayTitle;
+            }
         }
 
         let rows = this._rows;
