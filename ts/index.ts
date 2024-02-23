@@ -15,7 +15,9 @@ import {
     DevicesResponse,
     MemoryMapping,
     ReadMemoryRequest,
-    SingleReadMemoryRequest
+    SingleReadMemoryRequest, SingleReadMemoryResponse,
+    SingleWriteMemoryRequest,
+    WriteMemoryRequest
 } from './sni/sni';
 
 function setupTransport(baseUrl: string = 'http://localhost:8190') {
@@ -341,9 +343,93 @@ function bodySwapped() {
         let capture: Capture = window.snesCapture;
 
         capture.reset();
+
+        let doPause = !!(document.getElementById('chkPause') as HTMLInputElement)?.checked;
+        if (doPause) {
+            try {
+                await memoryClient.singleWrite(SingleWriteMemoryRequest.create({
+                    uri: uri,
+                    request: WriteMemoryRequest.create({
+                        requestMemoryMapping: MemoryMapping.Unknown,
+                        requestAddressSpace: AddressSpace.FxPakPro,
+                        // addresses beyond 0x100_0000 maps to the fxpak CMD space; this will likely error for
+                        // non-fxpak-compatible devices
+                        requestAddress: 0x100_0000 + 0x2C00,
+                        data: new Uint8Array([
+                            0x78,               // sei
+                            0xe2, 0x30,         // sep #$30
+                            0x48,               // pha
+                            0xad, 0x10, 0x42,   // lda.w $4210
+                            0xad, 0x00, 0x42,   // lda.w $4200
+                            0x29, 0x7f,         // and.b #$7f
+                            0x8d, 0x00, 0x42,   // sta.w $4200
+                            0x9c, 0xfe, 0x2c,   // stz.w $2cfe
+                            0xad, 0xfe, 0x2c,   // lda.w $2cfe
+                            0xf0, 0xfb,         // beq loop
+                            0x9c, 0x00, 0x2c,   // stz.w $2c00
+                            0xad, 0x00, 0x42,   // lda.w $4200
+                            0x09, 0x80,         // ora.b #$80
+                            0x8d, 0x00, 0x42,   // sta.w $4200
+                            0x68,               // pla
+                            0x6c, 0xea, 0xff    // jmp ($ffea)
+                        ])
+                    })
+                }));
+            } catch (e) {
+                console.error(e);
+                // pause functionality likely unavailable:
+                doPause = false;
+            }
+        }
+
+        if (doPause) {
+            // wait until paused:
+            let r: FinishedUnaryCall<SingleReadMemoryRequest, SingleReadMemoryResponse>;
+            do {
+                r = await memoryClient.singleRead(SingleReadMemoryRequest.create({
+                    uri: uri,
+                    request: ReadMemoryRequest.create({
+                        requestMemoryMapping: MemoryMapping.Unknown,
+                        requestAddressSpace: AddressSpace.FxPakPro,
+                        requestAddress: 0x100_0000 + 0x2C00,
+                        size: 1
+                    })
+                }));
+            } while (r.response.response?.data[0] == 0);
+        }
+
         await capture.captureHeader();
         await capture.captureWram();
         await capture.captureSram();
+
+        if (doPause) {
+            // unpause:
+            await memoryClient.singleWrite(SingleWriteMemoryRequest.create({
+                uri: uri,
+                request: WriteMemoryRequest.create({
+                    requestMemoryMapping: MemoryMapping.Unknown,
+                    requestAddressSpace: AddressSpace.FxPakPro,
+                    requestAddress: 0x100_0000 + 0x2CFE,
+                    data: new Uint8Array([
+                        0xFF, 0xFF
+                    ])
+                })
+            }));
+
+            // wait until unpaused:
+            let r: FinishedUnaryCall<SingleReadMemoryRequest, SingleReadMemoryResponse>;
+            do {
+                r = await memoryClient.singleRead(SingleReadMemoryRequest.create({
+                    uri: uri,
+                    request: ReadMemoryRequest.create({
+                        requestMemoryMapping: MemoryMapping.Unknown,
+                        requestAddressSpace: AddressSpace.FxPakPro,
+                        requestAddress: 0x100_0000 + 0x2C00,
+                        size: 1
+                    })
+                }));
+            } while (r.response.response?.data[0] != 0);
+        }
 
         // enable share button:
         document.getElementById('btnShare')?.removeAttribute('disabled');
