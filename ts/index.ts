@@ -356,22 +356,31 @@ function bodySwapped() {
                         // non-fxpak-compatible devices
                         requestAddress: 0x100_0000 + 0x2C00,
                         data: new Uint8Array([
-                            0x78,               // sei
-                            0xe2, 0x30,         // sep #$30
-                            0x48,               // pha
-                            0xad, 0x10, 0x42,   // lda.w $4210
-                            0xad, 0x00, 0x42,   // lda.w $4200
-                            0x29, 0x7f,         // and.b #$7f
-                            0x8d, 0x00, 0x42,   // sta.w $4200
-                            0x9c, 0xfe, 0x2c,   // stz.w $2cfe
-                            0xad, 0xfe, 0x2c,   // lda.w $2cfe
-                            0xf0, 0xfb,         // beq loop
-                            0x9c, 0x00, 0x2c,   // stz.w $2c00
-                            0xad, 0x00, 0x42,   // lda.w $4200
-                            0x09, 0x80,         // ora.b #$80
-                            0x8d, 0x00, 0x42,   // sta.w $4200
-                            0x68,               // pla
-                            0x6c, 0xea, 0xff    // jmp ($ffea)
+                            0x78,                   // sei
+                            0xe2, 0x30,             // sep   #$30
+                            0x48,                   // pha
+                            // read NMI status to clear it:
+                            0xad, 0x10, 0x42,       // lda.w $4210
+                            0x80, 0x02,             // bra   check_paused
+                            // paused_state:
+                            0x00, 0x00,
+                            // check_paused:
+                            0xad, 0x0a, 0x2c,       // lda.w $2c0a
+                            0xf0, 0x02,             // beq   loop_init
+                            0x68,                   // pla
+                            0x40,                   // rti
+                            // loop_init:
+                            0xa9, 0xea,             // lda.b #$ea
+                            0x8d, 0x0a, 0x2c,       // sta.w $2c0a
+                            // loop:
+                            // loop until external non-zero write to $2C09
+                            0xad, 0x09, 0x2c,       // lda.w $2c09
+                            0xf0, 0xfb,             // beq   loop
+                            // disable NMI override:
+                            0x9c, 0x00, 0x2c,       // stz.w $2c00
+                            0x68,                   // pla
+                            // jump to original NMI:
+                            0x6c, 0xea, 0xff        // jmp   ($ffea)
                         ])
                     })
                 }));
@@ -409,9 +418,9 @@ function bodySwapped() {
                 request: WriteMemoryRequest.create({
                     requestMemoryMapping: MemoryMapping.Unknown,
                     requestAddressSpace: AddressSpace.FxPakPro,
-                    requestAddress: 0x100_0000 + 0x2CFE,
+                    requestAddress: 0x100_0000 + 0x2C09,
                     data: new Uint8Array([
-                        0xFF, 0xFF
+                        0xEA,
                     ])
                 })
             }));
