@@ -91,37 +91,44 @@ class Capture {
             return;
         }
 
-        // read the ROM header:
-        console.log("read ROM header:");
-        let rsp;
-        try {
-            rsp = await memoryClient.singleRead(SingleReadMemoryRequest.create({
-                uri: uri,
-                request: ReadMemoryRequest.create({
-                    requestAddressSpace: AddressSpace.SnesABus,
-                    requestMemoryMapping: drsp.response.memoryMapping,
-                    requestAddress: 0x00FFB0,
-                    size: 0x50
-                })
-            }));
-        } catch (err) {
-            console.warn("read failed:", err);
-            return;
+        this.header = drsp.response.romHeader00FFB0;
+
+        if (!this.header) {
+            // read the ROM header:
+            console.log("read ROM header:");
+            let rsp;
+            try {
+                rsp = await memoryClient.singleRead(SingleReadMemoryRequest.create({
+                    uri: uri,
+                    request: ReadMemoryRequest.create({
+                        requestAddressSpace: AddressSpace.SnesABus,
+                        requestMemoryMapping: drsp.response.memoryMapping,
+                        requestAddress: 0x00FFB0,
+                        size: 0x50
+                    })
+                }));
+            } catch (err) {
+                console.warn("read failed:", err);
+                return;
+            }
+
+            console.log("read ROM header complete:");
+            let mrsp = rsp.response.response;
+            if (!mrsp) return;
+
+            // console.log(mrsp.data);
+            this.header = mrsp.data;
         }
-
-        console.log("read ROM header complete:");
-        let mrsp = rsp.response.response;
-        if (!mrsp) return;
-
-        // console.log(mrsp.data);
-        this.header = mrsp.data;
     }
 
     sramSize() {
-        let sramSize = this.header[0xFFD8 - 0xFFB0];
+    	let sramSize = 8;
+    	if (this.header && this.header.length > 0x28) {
+        	sramSize = this.header[0xFFD8 - 0xFFB0];
+        }
         if (sramSize > 8) {
             // unlikely a valid value beyond 256KiB:
-            return 0;
+            return 1024 << 8;
         }
         // amount of SRAM data in bytes:
         return 1024 << sramSize;
