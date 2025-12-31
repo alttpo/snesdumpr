@@ -264,12 +264,12 @@ func StartGin() {
 		}
 	} else {
 		// non-TLS:
-		port := os.Getenv("PORT")
+		port := os.Getenv("HTTPBIND")
 		if port == "" {
-			port = "8080"
+			port = "127.0.0.1:8080"
 		}
 
-		if err := router.Run(":" + port); err != nil {
+		if err := router.Run(port); err != nil {
 			log.Panicf("error: %s", err)
 		}
 	}
