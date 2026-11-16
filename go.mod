@@ -3,7 +3,7 @@ module snesdumpr
 go 1.21
 
 require (
-	github.com/alttpo/snes v0.0.0-20240303221645-84908f749e25
+	github.com/alttpo/snes v0.0.0-20261116181553-d91674793906
 	github.com/fsnotify/fsnotify v1.7.0
 	github.com/gin-gonic/gin v1.9.1
 	github.com/redis/go-redis/v9 v9.5.1
